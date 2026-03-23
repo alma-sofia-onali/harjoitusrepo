@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doggo-gotchi</title>
+    <style>
+        :root {
+            --bg-color: #f0f8ff;
+            --container-bg: #ffffff;
+            --primary-btn: #4caf50;
+            --danger: #ff4747;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #game-container {
+            background-color: var(--container-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 350px;
+            border: 8px solid #333;
+        }
+
+        #pet-display {
+            font-size: 80px;
+            margin: 20px 0;
+            transition: transform 0.2s;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stats-container {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .stat-row {
+            margin: 10px 0;
+        }
+
+        .label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .bar-bg {
+            background-color: #eee;
+            border-radius: 10px;
+            height: 15px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.5s, background-color 0.5s;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        button:active { transform: scale(0.95); }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .feed-btn { background-color: #ff9800; color: white; }
+        .play-btn { background-color: #2196f3; color: white; }
+        .sleep-btn { background-color: #9c27b0; color: white; }
+        .clean-btn { background-color: #00bcd4; color: white; }
+
+        #message {
+            margin-top: 15px;
+            min-height: 20px;
+            font-style: italic;
+            color: #555;
+        }
+
+        .dead {
+            filter: grayscale(100%);
+            opacity: 0.5;
+        }
+
+        /* Animations */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .animate-bounce { animation: bounce 0.5s ease infinite; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h2>Doggo-gotchi</h2>
+    <div id="pet-display">🐶</div>
+    
+    <div class="stats-container">
+        <div class="stat-row">
+            <div class="label">Hunger <span id="hunger-val">100</span>%</div>
+            <div class="bar-bg"><div id="hunger-bar" class="bar-fill" style="background-color: #4caf50;"></div></div>
+        </div>
+        <div class="stat-row">
+            <div class="label">Happiness <span id="happy-val">100</span>%</div>
+            <div class="bar-bg"><div id="happy-bar" class="bar-fill" style="background-color: #4caf50;"></div></div>
+        </div>
+        <div class="stat-row">
+            <div class="label">Energy <span id="energy-val">100</span>%</div>
+            <div class="bar-bg"><div id="energy-bar" class="bar-fill" style="background-color: #4caf50;"></div></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="feed-btn" onclick="feed()">🍖 Feed</button>
+        <button class="play-btn" onclick="play()">🎾 Play</button>
+        <button class="sleep-btn" onclick="sleep()">💤 Sleep</button>
+        <button class="clean-btn" onclick="clean()">🧼 Bath</button>
+    </div>
+
+    <div id="message">Your dog is happy!</div>
+    <button id="restart-btn" style="display:none; width:100%; margin-top:10px; background: #333; color: white;" onclick="resetGame()">Try Again?</button>
+</div>
+
+<script>
+    // Game State
+    let hunger = 100;
+    let happiness = 100;
+    let energy = 100;
+    let isAlive = true;
+    let isSleeping = false;
+
+    // DOM Elements
+    const petDisplay = document.getElementById('pet-display');
+    const messageEl = document.getElementById('message');
+    const restartBtn = document.getElementById('restart-btn');
+
+    // Main Game Loop (Runs every 3 seconds)
+    const gameLoop = setInterval(() => {
+        if (isAlive && !isSleeping) {
+            decayStats();
+            updateUI();
+            checkGameOver();
+        }
+    }, 3000);
+
+    function decayStats() {
+        hunger -= 5;
+        happiness -= 3;
+        energy -= 2;
+
+        // Keep stats between 0 and 100
+        hunger = Math.max(0, hunger);
+        happiness = Math.max(0, happiness);
+        energy = Math.max(0, energy);
+    }
+
+    function updateUI() {
+        // Update bars
+        updateBar('hunger', hunger);
+        updateBar('happy', happiness);
+        updateBar('energy', energy);
+
+        // Update Emoji and Messages
+        if (!isAlive) {
+            petDisplay.textContent = '💀';
+            petDisplay.classList.add('dead');
+            messageEl.textContent = "Oh no! Your dog passed away.";
+            return;
+        }
+
+        if (isSleeping) {
+            petDisplay.textContent = '😴';
+            messageEl.textContent = "Shhh... Doggo is sleeping.";
+            return;
+        }
+
+        if (hunger < 30) {
+            petDisplay.textContent = '🤤';
+            messageEl.textContent = "I'm starving!";
+        } else if (happiness < 30) {
+            petDisplay.textContent = '😢';
+            messageEl.textContent = "I'm lonely...";
+        } else if (energy < 30) {
+            petDisplay.textContent = '🥱';
+            messageEl.textContent = "I'm tired...";
+        } else {
+            petDisplay.textContent = '🐶';
+            messageEl.textContent = "Doing great!";
+        }
+    }
+
+    function updateBar(id, value) {
+        const bar = document.getElementById(`${id}-bar`);
+        const text = document.getElementById(`${id}-val`);
+        bar.style.width = value + '%';
+        text.textContent = Math.round(value);
+
+        // Color logic
+        if (value > 60) bar.style.backgroundColor = '#4caf50';
+        else if (value > 30) bar.style.backgroundColor = '#ffeb3b';
+        else bar.style.backgroundColor = '#f44336';
+    }
+
+    // Actions
+    function feed() {
+        if (!isAlive || isSleeping) return;
+        hunger = Math.min(100, hunger + 20);
+        happiness = Math.min(100, happiness + 5);
+        messageEl.textContent = "Yum! That was delicious!";
+        animatePet();
+        updateUI();
+    }
+
+    function play() {
+        if (!isAlive || isSleeping) return;
+        if (energy < 20) {
+            messageEl.textContent = "Too tired to play...";
+            return;
+        }
+        happiness = Math.min(100, happiness + 25);
+        energy = Math.max(0, energy - 15);
+        hunger = Math.max(0, hunger - 10);
+        messageEl.textContent = "Fetch! I love this game!";
+        animatePet();
+        updateUI();
+    }
+
+    function sleep() {
+        if (!isAlive || isSleeping) return;
+        isSleeping = true;
+        messageEl.textContent = "Taking a nap...";
+        
+        document.querySelectorAll('button:not(#restart-btn)').forEach(b => b.disabled = true);
+
+        let sleepTime = setInterval(() => {
+            energy += 10;
+            if (energy >= 100) {
+                energy = 100;
+                isSleeping = false;
+                clearInterval(sleepTime);
+                document.querySelectorAll('button').forEach(b => b.disabled = false);
+                messageEl.textContent = "Woke up refreshed!";
+                updateUI();
+            }
+            updateUI();
+        }, 1000);
+    }
+
+    function clean() {
+        if (!isAlive || isSleeping) return;
+        happiness = Math.min(100, happiness + 10);
+        petDisplay.textContent = '🧼';
+        setTimeout(() => updateUI(), 1000);
+        messageEl.textContent = "Squeaky clean!";
+    }
+
+    function animatePet() {
+        petDisplay.classList.add('animate-bounce');
+        setTimeout(() => petDisplay.classList.remove('animate-bounce'), 500);
+    }
+
+    function checkGameOver() {
+        if (hunger <= 0 || happiness <= 0 || energy <= 0) {
+            isAlive = false;
+            clearInterval(gameLoop);
+            updateUI();
+            restartBtn.style.display = 'block';
+        }
+    }
+
+    function resetGame() {
+        location.reload();
+    }
+</script>
+
+</body>
+</html>

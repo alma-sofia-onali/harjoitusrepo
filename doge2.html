@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dog Tamagotchi</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; background-color: #f0f8ff; margin-top: 50px;}
+        #dog { font-size: 100px; }
+        .stats { font-size: 20px; margin: 20px; }
+        button { padding: 15px 20px; font-size: 16px; margin: 5px; cursor: pointer;}
+        #message { font-size: 24px; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>Doggy Tamagotchi 🐶</h1>
+    <div id="dog">🐶</div>
+
+    <div class="stats">
+        <p>Hunger: <span id="hunger">100</span>/100</p>
+        <p>Happiness: <span id="happiness">100</span>/100</p>
+        <p>Energy: <span id="energy">100</span>/100</p>
+    </div>
+
+    <div id="message">Your dog is waiting for you!</div>
+
+    <button onclick="feed()">🍖 Feed</button>
+    <button onclick="play()">🎾 Play</button>
+    <button onclick="sleep()">😴 Sleep</button>
+
+<script>
+    let hunger = 100;
+    let happiness = 100;
+    let energy = 100;
+
+    function updateUI() {
+        document.getElementById('hunger').innerText = hunger;
+        document.getElementById('happiness').innerText = happiness;
+        document.getElementById('energy').innerText = energy;
+
+        if (hunger <= 0 || happiness <= 0 || energy <= 0) {
+            document.getElementById('dog').innerText = '👻';
+            document.getElementById('message').innerText = "Oh no! Your dog ran away!";
+            document.getElementById('message').style.color = "red";
+        }
+    }
+
+    // Stats decrease every second
+    setInterval(() => {
+        if(hunger > 0) hunger -= 2;
+        if(happiness > 0) happiness -= 2;
+        if(energy > 0) energy -= 1;
+        updateUI();
+    }, 1000);
+
+    function feed() {
+        if(hunger <= 0) return;
+        hunger += 10;
+        if(hunger > 100) hunger = 100;
+        document.getElementById('message').innerText = "Yum! Doggy loved the treat!";
+        updateUI();
+    }
+
+    function play() {
+        if(happiness <= 0 || energy <= 10) {
+            document.getElementById('message').innerText = "Doggy is too tired to play!";
+            return;
+        }
+        happiness += 15;
+        energy -= 10;
+        if(happiness > 100) happiness = 100;
+        document.getElementById('message').innerText = "Woof! That was fun!";
+        updateUI();
+    }
+
+    function sleep() {
+        if(energy <= 0) return;
+        energy += 20;
+        hunger -= 5;
+        if(energy > 100) energy = 100;
+        document.getElementById('message').innerText = "Zzz... Doggy is resting.";
+        updateUI();
+    }
+</script>
+</body>
+</html>
