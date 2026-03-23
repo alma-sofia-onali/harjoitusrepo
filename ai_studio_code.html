@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Meal & Grocery Planner</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --accent: #10b981;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .grid-layout { grid-template-columns: 1fr; }
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+
+        /* Table/Planner Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .day-name { font-weight: bold; color: var(--primary); width: 100px; }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #fff;
+        }
+
+        /* Shopping List Styles */
+        .shopping-list-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .shopping-list-item input[type="checkbox"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .qty {
+            background: var(--bg);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .strikethrough { text-decoration: line-through; opacity: 0.5; }
+
+        /* Recipe Manager */
+        .recipe-form {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover { opacity: 0.9; }
+
+        .btn-clear { background: #ef4444; margin-top: 10px; width: 100%; }
+
+        .recipe-tag {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🛒 Grocery & Meal Planner</h1>
+        <p>Plan your week, automate your shopping.</p>
+    </header>
+
+    <div class="grid-layout">
+        <!-- Main Planner -->
+        <div class="card">
+            <h2>Weekly Meal Plan</h2>
+            <table id="plannerTable">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Breakfast</th>
+                        <th>Lunch</th>
+                        <th>Dinner</th>
+                    </tr>
+                </thead>
+                <tbody id="plannerBody">
+                    <!-- JS will populate rows -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sidebar: Shopping List -->
+        <div class="sidebar">
+            <div class="card">
+                <h2>Shopping List</h2>
+                <div id="shoppingListDisplay">
+                    <!-- JS will populate list -->
+                </div>
+                <button class="btn-clear" onclick="clearPlan()">Reset Weekly Plan</button>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h2>Add New Recipe</h2>
+                <div class="recipe-form">
+                    <input type="text" id="recName" placeholder="Recipe Name (e.g. Pasta)">
+                    <input type="text" id="recIngs" placeholder="Ingredients (comma separated)">
+                    <button onclick="addNewRecipe()">Save Recipe</button>
+                </div>
+                <div id="recipeList" style="margin-top: 15px;">
+                    <!-- Lists saved recipes -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- DATA INITIALIZATION ---
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const MEALS = ['Breakfast', 'Lunch', 'Dinner'];
+
+    let state = {
+        recipes: JSON.parse(localStorage.getItem('recipes')) || [
+            { name: 'Oatmeal', ingredients: ['Oats', 'Milk', 'Banana'] },
+            { name: 'Chicken Salad', ingredients: ['Chicken', 'Lettuce', 'Mayo'] },
+            { name: 'Spaghetti', ingredients: ['Pasta', 'Tomato Sauce', 'Ground Beef'] }
+        ],
+        plan: JSON.parse(localStorage.getItem('plan')) || {}
+    };
+
+    // --- CORE LOGIC ---
+
+    function saveData() {
+        localStorage.setItem('recipes', JSON.stringify(state.recipes));
+        localStorage.setItem('plan', JSON.stringify(state.plan));
+        renderShoppingList();
+    }
+
+    function addNewRecipe() {
+        const name = document.getElementById('recName').value;
+        const ings = document.getElementById('recIngs').value.split(',').map(i => i.trim()).filter(i => i !== "");
+        
+        if (!name || ings.length === 0) return alert("Please enter name and ingredients");
+
+        state.recipes.push({ name, ingredients: ings });
+        document.getElementById('recName').value = '';
+        document.getElementById('recIngs').value = '';
+        saveData();
+        renderPlanner(); // Refresh selects
+        renderRecipeList();
+    }
+
+    function clearPlan() {
+        if(confirm("Clear this week's plan?")) {
+            state.plan = {};
+            saveData();
+            renderPlanner();
+        }
+    }
+
+    // --- RENDERING ---
+
+    function renderPlanner() {
+        const tbody = document.getElementById('plannerBody');
+        tbody.innerHTML = '';
+
+        DAYS.forEach(day => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td class="day-name">${day}</td>`;
+            
+            MEALS.forEach(meal => {
+                const cell = document.createElement('td');
+                const select = document.createElement('select');
+                const planKey = `${day}-${meal}`;
+
+                select.innerHTML = `<option value="">-- No Meal --</option>`;
+                state.recipes.forEach(r => {
+                    const selected = state.plan[planKey] === r.name ? 'selected' : '';
+                    select.innerHTML += `<option value="${r.name}" ${selected}>${r.name}</option>`;
+                });
+
+                select.onchange = (e) => {
+                    state.plan[planKey] = e.target.value;
+                    saveData();
+                };
+
+                cell.appendChild(select);
+                row.appendChild(cell);
+            });
+            tbody.appendChild(row);
+        });
+    }
+
+    function renderShoppingList() {
+        const listDiv = document.getElementById('shoppingListDisplay');
+        const ingredientsMap = {};
+
+        // Aggregate ingredients
+        Object.values(state.plan).forEach(recipeName => {
+            const recipe = state.recipes.find(r => r.name === recipeName);
+            if (recipe) {
+                recipe.ingredients.forEach(ing => {
+                    const cleanIng = ing.toLowerCase();
+                    ingredientsMap[cleanIng] = (ingredientsMap[cleanIng] || 0) + 1;
+                });
+            }
+        });
+
+        const items = Object.entries(ingredientsMap);
+        if (items.length === 0) {
+            listDiv.innerHTML = '<p style="color: #94a3b8">Your shopping list is empty. Add meals to the planner!</p>';
+            return;
+        }
+
+        listDiv.innerHTML = '';
+        items.sort().forEach(([name, qty]) => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'shopping-list-item';
+            itemEl.innerHTML = `
+                <input type="checkbox" onchange="this.nextElementSibling.classList.toggle('strikethrough')">
+                <span><span class="qty">${qty}</span> ${name}</span>
+            `;
+            listDiv.appendChild(itemEl);
+        });
+    }
+
+    function renderRecipeList() {
+        const container = document.getElementById('recipeList');
+        container.innerHTML = '<strong>My Recipes:</strong><br>';
+        state.recipes.forEach(r => {
+            const tag = document.createElement('span');
+            tag.className = 'recipe-tag';
+            tag.textContent = r.name;
+            container.appendChild(tag);
+        });
+    }
+
+    // Initialize
+    renderPlanner();
+    renderShoppingList();
+    renderRecipeList();
+
+</script>
+
+</body>
+</html>
